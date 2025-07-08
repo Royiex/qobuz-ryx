@@ -45,6 +45,11 @@ def download_track(data):
 
     filename = f"{filepath}/{data[5]:02} - {data[4]}.flac"
 
+    if os.path.isfile(filename):
+        print(f"\rDownloaded {data[4]}")
+        print()
+        return 0
+
     params_down = {
         "track_id": data[3],
         "quality": 27
@@ -123,7 +128,7 @@ def download_album(data):
         download_track(info)
 
     print(f"------------------------------")
-    print(f"Downloaded {data[2]}")
+    print(f"Downloaded {data[1]}")
     print(f"------------------------------")
     print()
     print()
