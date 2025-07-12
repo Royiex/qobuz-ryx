@@ -29,6 +29,21 @@ def search(query):
 
 
 def download_track(data):
+    nfo_artist = f"""<?xml version="1.0" encoding="UTF-8"?>
+<artist>
+    <name>{data[0]}</name>
+    <sortname>{data[0]}</sortname>
+</artist>"""
+    nfo_album = f"""<?xml version="1.0" encoding="UTF-8"?>
+<album>
+    <title>{data[1]}</title>
+    <genre></genre>
+    <releasedate>{data[2]}</releasedate>
+    <albumArtistCredits>
+        <artist>{data[0]}</artist>
+    </albumArtistCredits>
+</album>"""
+
     data = cleanup(data)
 
     filepath = f"{music_path}/{data[0]}/{data[1]}"
@@ -43,37 +58,41 @@ def download_track(data):
                 if chunk:
                     f.write(chunk)
 
+    with open(f"{music_path}/{data[0]}/artist.nfo", "w") as f:
+        f.write(nfo_artist)
+    with open(f"{music_path}/{data[0]}/{data[1]}/album.nfo", "w") as f:
+        f.write(nfo_album)
+
     filename = f"{filepath}/{data[5]:02} - {data[4]}.flac"
 
     if os.path.isfile(filename):
         print(f"\rDownloaded {data[4]}")
         print()
-        return 0
+    else:
+        params_down = {
+            "track_id": data[3],
+            "quality": 27
+        }
 
-    params_down = {
-        "track_id": data[3],
-        "quality": 27
-    }
+        url_down = f"{url_down_main}?{urllib.parse.urlencode(params_down)}"
 
-    url_down = f"{url_down_main}?{urllib.parse.urlencode(params_down)}"
-
-    response_down = requests.get(url_down)
-    data_down = response_down.json()
-    url = data_down["data"]["url"]
-    response = requests.get(url, stream=True)
+        response_down = requests.get(url_down)
+        data_down = response_down.json()
+        url = data_down["data"]["url"]
+        response = requests.get(url, stream=True)
     
-    downloaded = 0
-    total_size = int(response.headers.get('Content-Length', 0))
+        downloaded = 0
+        total_size = int(response.headers.get('Content-Length', 0))
 
-    print(f"Downloading {data[4]}")
+        print(f"Downloading {data[4]}")
 
-    with open(filename, 'wb') as f:
-        for chunk in response.iter_content(chunk_size=8192):
-            if chunk:
-                f.write(chunk)
-                downloaded += len(chunk)
-                percent = downloaded * 100 / total_size
-                print(f"\rDownloaded {percent:.2f}%", end='')
+        with open(filename, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    percent = downloaded * 100 / total_size
+                    print(f"\rDownloaded {percent:.2f}%", end='')
 
     audio = FLAC(filename)
     audio.clear()
@@ -82,7 +101,9 @@ def download_track(data):
     audio["ALBUM"] = data[1]
     audio["DATE"] = data[2]
     audio["TITLE"] = data[4]
-    audio["TRACKNUMBER"] = data[5]
+    audio["TRACKNUMBER"] = str(data[5])
+
+    audio.save()
 
     print(f"\rDownloaded {data[4]}")
     print()
